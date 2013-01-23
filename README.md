@@ -142,7 +142,8 @@ function foo(a, b) {
         }
     }
 }
-"```
+"
+```
 
 This normally isn’t a big deal, but some code libraries may expect to be able to see comments in a function's source code.
 
