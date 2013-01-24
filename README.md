@@ -19,17 +19,19 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Assignment in if statements](#assignment-in-if-statements)
 	- [Function.toString() reformats the source code](#functiontostring-reformats-the-source-code)
 	- [Regular expressions](#regular-expressions)
-	- [encodeURIComponent()](#encodeuricomponent)
+	- [decodeURI(),decodeURIComponent(),encodeURI(), and encodeURIComponent() crash Fireworks](#decodeuridecodeuricomponentencodeuri-and-encodeuricomponent-crash-fireworks)
 	- [[].sort() returns undefined](#sort-returns-undefined)
 	- [Naming a variable nodes in auto shape code causes an error](#naming-a-variable-nodes-in-auto-shape-code-causes-an-error)
+	- [System.osName is wrong](#systemosname-is-wrong)
+	- [fw.appName is wrong](#fwappname-is-wrong)
 - [Undocumented features](#undocumented-features)
 	- [toSource()](#tosource)
 	- [File class](#file-class)
 	- [const](#const)
 	- [Getters and setters](#getters-and-setters)
 	- [watch() and unwatch()](#watch-and-unwatch)
-	- [__call__ and __parent__](#__call__-and-__parent__)
-	- [__proto__](#__proto__)
+	- [`__call__` and `__parent__](#__call__-and-__parent__)
+	- [$](#)
 
 
 # Native objects
