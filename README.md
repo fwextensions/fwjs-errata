@@ -7,8 +7,35 @@ To explore the JS examples here, it's helpful to install the [Fireworks Console]
 If you’re a real masochist, you can take a look at the source code for the JavaScript interpreter, which is installed with the app in *Configuration\Third Party Source Code\JavaScript Interpreter*.  Doing so was how I discovered some of the undocumented features of the JS engine.  It appears to be based on version 1.5 of the Mozilla interpreter.  The version string in the source says `"JavaScript-C 1.5 pre-release 3 2001-03-07"`, so it looks like the code hasn’t been updated since **2001**.
 
 
+# Contents
+
+- [Native objects](#native-objects)
+	- [FwDict and FwArray](#fwdict-and-fwarray)
+	- [in and hasOwnProperty() with native objects](#in-and-hasownproperty-with-native-objects)
+	- [customData](#customdata)
+	- [dom.pngText](#dompngtext)
+	- [Files.readLine() is limited to 2047 characters](#filesreadline-is-limited-to-2047-characters)
+- [Bugs](#bugs)
+	- [Assignment in if statements](#assignment-in-if-statements)
+	- [Function.toString() reformats the source code](#functiontostring-reformats-the-source-code)
+	- [Regular expressions](#regular-expressions)
+	- [encodeURIComponent()](#encodeuricomponent)
+	- [[].sort() returns undefined](#sort-returns-undefined)
+	- [Naming a variable nodes in auto shape code causes an error](#naming-a-variable-nodes-in-auto-shape-code-causes-an-error)
+- [Undocumented features](#undocumented-features)
+	- [toSource()](#tosource)
+	- [File class](#file-class)
+	- [const](#const)
+	- [Getters and setters](#getters-and-setters)
+	- [watch() and unwatch()](#watch-and-unwatch)
+	- [__call__ and __parent__](#__call__-and-__parent__)
+	- [__proto__](#__proto__)
+
+
 # Native objects
 
+In addition to standard JS objects, the Fireworks environment exposes access to various Fireworks-specific objects, which don’t always behave like normal JS objects. 
+ 
 
 ## `FwDict` and `FwArray`
 
@@ -96,6 +123,24 @@ log(el.customData.foo); // { x: 0, y: 0 }
 
 ## `dom.pngText`
 
+The `pngText` property of Fireworks documents is an `FwDict` that can be used to persistently store arbitrary data in the document.  While somewhat similar to `customData`, it's even more limited, as it supports storing only string values. So if you do:
+
+```JavaScript
+dom.pngText.foo = [1, 2, 3];
+```
+
+and then save the file, the next time you reopen it, the array value will have been turned into the source string version of that value: `"[1,2,3]"`. 
+
+Even more confusing, `dom.pngText.foo` will appear to still be an array immediately after you set it.  It's only after the document is saved, closed and reopened do you discover it's been converted into a string.
+
+And to make matters worse, each property on `dom.pngText` is limited to 1023 characters.  So if you think you can just stringify some data and store it, think again.  It will get cut off if it's too long.
+
+The [`DomStorage`](http://htmlpreview.github.com/?https://raw.github.com/fwextensions/fwlib/master/docs/a321565296.html) class offers a way to more easily store arbitrary on `dom.pngText` by turning it into JSON and then automatically chunking it up into 1023-character strings.  When the data is restored, the chunks are combined and then evaluated. 
+
+Note that like `customData`, there’s no way to delete a property from `dom.pngText`.  You can only set the property to `null`.
+
+Also note that each page in a Fireworks document has its own independent `pngText` property.  The easiest way to deal with this in an extension is just to always store data on the first page's `pngText`.  
+
 
 ## `Files.readLine()` is limited to 2047 characters
 
@@ -104,9 +149,12 @@ log(el.customData.foo); // { x: 0, y: 0 }
 
 # Bugs
 
+There are some flat-out bugs in the JS engine, most of which can’t really be worked around.
+
+
 ## Assignment in `if` statements
 
-Although normally an error, it should be possible to assign a value to a variable within the expression of an `if` statement.  However, the Fireworks JS engine interprets an assignment as a check for equality and doesn’t perform the assignment:
+Although normally an error, the JavaScript syntax allows you to assign a value to a variable within the expression of an `if` statement.  However, the Fireworks JS engine interprets an assignment as a check for equality and doesn’t perform the assignment:
 
 ```JavaScript
 var a = 0; 
@@ -116,7 +164,7 @@ if (a = 1) {
 a; // 0
 ```
 
-Usually you don’t want to write code like this, but some JS minifiers, like Google's Closure Compiler, do make this micro-optimization, so the output from such compressors won’t work correctly in Fireworks.  
+Usually you don’t want to write code like this, but some JS minifiers, like Google's Closure Compiler, do make this micro-optimization, so the output from such compressors won’t work correctly in Fireworks.  (Fortunately, minification isn’t a big deal for Fireworks extensions, since the code isn’t being loaded from the internet.)
 
 
 ## `Function.toString()` reformats the source code
@@ -169,7 +217,7 @@ function foo()
 foo.toString();
 ```
 
-Then calling `toString()` on that function returns code with a syntax error:
+then calling `toString()` on that function returns code with a syntax error:
 
 ```JavaScript
 "
@@ -213,7 +261,9 @@ But in Fireworks, it just returns:
 Using a captured group token, like `$1`, in the replacement string in a call to `replace()` will fail if the token is immediately followed by a number.  So a call like `"***".replace(/(\*)/g, "$12|")` will return `"*2|*2|*2|"` in a browser but `"|||"` in Fireworks.  It seems like the parser is interpreting the token in `"$12|"` as `$12`, rather than `$1` followed by a 2.
 
 
-## `encodeURIComponent()`
+## `decodeURI()`,`decodeURIComponent()`,`encodeURI()`, and `encodeURIComponent()` crash Fireworks 
+
+Calling any of these functions will either make the JS engine unstable or cause Fireworks to crash completely.  The only workaround is to use `escape()` and `unescape()`, which aren’t perfect replacements, or write your own versions of those functions.  
 
 
 ## `[].sort()` returns `undefined`
@@ -234,7 +284,20 @@ In auto shape code, you often want to refer to the nodes in one of the shape's p
 There is a special circle of hell reserved for whoever is responsible for this bug. 
 
 
+## `System.osName` is wrong
+
+Checking `System.osName` on Windows 7 returns `"Windows XP"`.
+
+
+## `fw.appName` is wrong
+
+`fw.appName` returns `"Fireworks 10"` in Fireworks CS6, even though CS6 is version 12.
+
+
 # Undocumented features
+
+Most of these undocumented features aren’t unique to Fireworks.  They were standard features in version 1.5 of the Mozilla engine, but not necessarily standard across other browsers.  
+
 
 ## `toSource()`
 
@@ -264,7 +327,7 @@ function copyObject(
 
 ## `File` class
 
-There’s a documented `Files` object, which provides methods for working with files.  Unfortunately, this object doesn’t offer any way to get a file's size or modification date.  Fortunately, there’s also an undocumented `File` class lurking in the JS engine: 
+There’s a documented `Files` object in Fireworks, which provides methods for working with files.  Unfortunately, this object doesn’t offer any way to get a file's size or modification date.  Fortunately, there’s also an undocumented `File` class lurking in the JS engine: 
 
 ```JavaScript
 var f = new File("C:\\Projects\\test.js");
@@ -371,5 +434,14 @@ The somewhat related `__parent__` property of objects provides access to the sco
 While these properties are fairly arcane, they were crucial for adding the [`trace()`](https://github.com/fwextensions/trace#how-trace-works) method to the Fireworks Console.
 
 
-## `__proto__`
+## `$`
 
+This global object contains a number of properties, some of which are useful and some which are not:
+
+* `build`: returns the detailed build version of Fireworks, e.g. `"12.0.0.236"`.
+* `buildDate`: this seems to return the same string as `$.build`.
+* `fileName`: returns `"not implemented"`.
+* `locale`: returns `"English"` for a US build of Fireworks. 
+* `os`: returns `"Windows XP"` for Windows 7, so this is not reliable. 
+* `version`: returns `"12.0"` for Fireworks CS6, which is correct, unlike `fw.appName`.
+* `sleep()`: pass in the number of milliseconds the script should sleep before continuing.  Unfortunately, this method blocks the UI, so there’s no way to use it to cause code to run after a delay.  
