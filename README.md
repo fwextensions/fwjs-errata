@@ -30,7 +30,7 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [const](#const)
 	- [Getters and setters](#getters-and-setters)
 	- [watch() and unwatch()](#watch-and-unwatch)
-	- [`__call__` and `__parent__](#__call__-and-__parent__)
+	- [`__call__` and `__parent__`](#__call__-and-__parent__)
 	- [$](#)
 
 
