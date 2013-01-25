@@ -19,11 +19,9 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Assignment in if statements](#assignment-in-if-statements)
 	- [Function.toString() reformats the source code](#functiontostring-reformats-the-source-code)
 	- [Regular expressions](#regular-expressions)
-	- [decodeURI(),decodeURIComponent(),encodeURI(), and encodeURIComponent() crash Fireworks](#decodeuridecodeuricomponentencodeuri-and-encodeuricomponent-crash-fireworks)
+	- [encodeURIComponent()](#encodeuricomponent)
 	- [[].sort() returns undefined](#sort-returns-undefined)
 	- [Naming a variable nodes in auto shape code causes an error](#naming-a-variable-nodes-in-auto-shape-code-causes-an-error)
-	- [System.osName is wrong](#systemosname-is-wrong)
-	- [fw.appName is wrong](#fwappname-is-wrong)
 - [Undocumented features](#undocumented-features)
 	- [toSource()](#tosource)
 	- [File class](#file-class)
@@ -31,7 +29,6 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Getters and setters](#getters-and-setters)
 	- [watch() and unwatch()](#watch-and-unwatch)
 	- [`__call__` and `__parent__`](#__call__-and-__parent__)
-	- [$](#)
 
 
 # Native objects
@@ -438,12 +435,22 @@ While these properties are fairly arcane, they were crucial for adding the [`tra
 
 ## `$`
 
-This global object contains a number of properties, some of which are useful and some which are not:
+This global object contains a number of Fireworks-specific properties, some of which are useful and some which are not:
 
 * `build`: returns the detailed build version of Fireworks, e.g. `"12.0.0.236"`.
 * `buildDate`: this seems to return the same string as `$.build`.
 * `fileName`: returns `"not implemented"`.
 * `locale`: returns `"English"` for a US build of Fireworks. 
 * `os`: returns `"Windows XP"` for Windows 7, so this is not reliable. 
-* `version`: returns `"12.0"` for Fireworks CS6, which is correct, unlike `fw.appName`.
+* `version`: returns `"12.0"` for Fireworks CS6, which is the correct version number, unlike `fw.appName`.
 * `sleep()`: pass in the number of milliseconds the script should sleep before continuing.  Unfortunately, this method blocks the UI, so there’s no way to use it to cause code to run after a delay.  
+
+
+## `fw.shiftKeyDown()`, `fw.ctrlCmdKeyDown()`, `fw.altOptKeyDown()`
+
+These undocumented methods return the current state of the shift, ctrl/command and alt/option keys, respectively.  They could be used to make a command behave differently depending on whether a key was held down while it was selected from the *Commands* menu.  But you wouldn’t be able to tell whether the command was run from the menu or via a keyboard shortcut that included the given key.
+
+
+## `fw.undo()` and `fw.redo()`
+
+These `undo()` and `redo()` methods seem to behave the same as the equivalent methods on the `dom` object.
