@@ -308,9 +308,11 @@ So it seems like `dom.setElementLocked()` indexes the layer's elements in the op
 The `dom.setElementVisible()` method has the same bug. 
 
 
-## Setting the `locked` or `visible` property of a sub-layer throws an exception
+## Setting the `locked`, `visible` or `disclosure` property of a sub-layer throws an exception
 
-You can lock or hide a layer by doing something like `dom.layers[1].frames[0].visible = true`.  But if layer 1 is actually a sub-layer, then this code will throw an exception saying *Could not run the script. A parameter was incorrect.*.  The workaround is to use the `dom.setLayerLocked()` and `dom.setLayerVisible()` methods instead.  
+You can lock or hide a layer by doing something like `dom.layers[1].frames[0].visible = true`.  But if layer 1 is actually a sub-layer, then this code will throw an exception saying *Could not run the script. A parameter was incorrect.*.  The workaround is to use the `dom.setLayerLocked()`, `dom.setLayerVisible()` and `dom.setLayerDisclosure()` methods instead.  
+
+Just accessing the `locked`, `visible` or `disclosure` properties without changing them works fine for sub-layers.  Note that the `disclosure` property is accessed directly on the layer, like `dom.layers[1].disclosure`.
 
 
 # Undocumented features
