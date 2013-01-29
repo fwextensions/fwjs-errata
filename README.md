@@ -24,6 +24,7 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Naming a variable nodes in auto shape code causes an error](#naming-a-variable-nodes-in-auto-shape-code-causes-an-error)
 	- [System.osName is wrong](#systemosname-is-wrong)
 	- [fw.appName is wrong](#fwappname-is-wrong)
+	- [dom.setElementLocked() and dom.setElementVisible() index elements differently than dom.frames[0].layers[0].elements](#domsetelementlocked-and-domsetelementvisible-index-elements-differently-than-domframes0layers0elements)
 - [Undocumented features](#undocumented-features)
 	- [toSource()](#tosource)
 	- [File class](#file-class)
@@ -305,6 +306,11 @@ The `elements` array of a layer is indexed from the top-most element in the laye
 So it seems like `dom.setElementLocked()` indexes the layer's elements in the opposite direction from the `elements` array.  To convert from the `elements` index to the index used by `dom.setElementLocked()`, subtract it from the length of the array minus 1.  So if there are 5 elements on the layer and you want to change the locked state of the second one from the top (with index 1), you’d do `(5 – 1) – 1 == 3`.
 
 The `dom.setElementVisible()` method has the same bug. 
+
+
+## Setting the `locked` or `visible` property of a sub-layer throws an exception
+
+You can lock or hide a layer by doing something like `dom.layers[1].frames[0].visible = true`.  But if layer 1 is actually a sub-layer, then this code will throw an exception saying *Could not run the script. A parameter was incorrect.*.  The workaround is to use the `dom.setLayerLocked()` and `dom.setLayerVisible()` methods instead.  
 
 
 # Undocumented features
