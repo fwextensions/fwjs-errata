@@ -19,9 +19,11 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Assignment in if statements](#assignment-in-if-statements)
 	- [Function.toString() reformats the source code](#functiontostring-reformats-the-source-code)
 	- [Regular expressions](#regular-expressions)
-	- [encodeURIComponent()](#encodeuricomponent)
+	- [decodeURI(),decodeURIComponent(),encodeURI(), and encodeURIComponent() crash Fireworks](#decodeuridecodeuricomponentencodeuri-and-encodeuricomponent-crash-fireworks)
 	- [[].sort() returns undefined](#sort-returns-undefined)
 	- [Naming a variable nodes in auto shape code causes an error](#naming-a-variable-nodes-in-auto-shape-code-causes-an-error)
+	- [System.osName is wrong](#systemosname-is-wrong)
+	- [fw.appName is wrong](#fwappname-is-wrong)
 - [Undocumented features](#undocumented-features)
 	- [toSource()](#tosource)
 	- [File class](#file-class)
@@ -29,6 +31,9 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Getters and setters](#getters-and-setters)
 	- [watch() and unwatch()](#watch-and-unwatch)
 	- [`__call__` and `__parent__`](#__call__-and-__parent__)
+	- [$](#)
+	- [fw.shiftKeyDown(), fw.ctrlCmdKeyDown(), fw.altOptKeyDown()](#fwshiftkeydown-fwctrlcmdkeydown-fwaltoptkeydown)
+	- [fw.undo() and fw.redo()](#fwundo-and-fwredo)
 
 
 # Native objects
@@ -153,7 +158,7 @@ There are some flat-out bugs in the JS engine, most of which can’t really be wor
 
 ## Assignment in `if` statements
 
-Although normally an error, the JavaScript syntax allows you to assign a value to a variable within the expression of an `if` statement.  However, the Fireworks JS engine interprets an assignment as a check for equality and doesn’t perform the assignment:
+Although usually unintended, the JavaScript syntax allows you to assign a value to a variable within the expression of an `if` statement.  However, the Fireworks JS engine interprets an assignment as a check for equality and doesn’t perform the assignment:
 
 ```JavaScript
 var a = 0; 
@@ -291,6 +296,15 @@ Checking `System.osName` on Windows 7 returns `"Windows XP"`.
 ## `fw.appName` is wrong
 
 `fw.appName` returns `"Fireworks 10"` in Fireworks CS6, even though CS6 is version 12.
+
+
+## `dom.setElementLocked()` and `dom.setElementVisible()` index elements differently than `dom.frames[0].layers[0].elements`
+
+The `elements` array of a layer is indexed from the top-most element in the layer downwards.  When you call `dom.setElementLocked()`, the third parameter is supposed to be the index of the element you want to lock or unlock.  But passing in `0` actually toggles the lock state of the bottom-most element.  
+
+So it seems like `dom.setElementLocked()` indexes the layer's elements in the opposite direction from the `elements` array.  To convert from the `elements` index to the index used by `dom.setElementLocked()`, subtract it from the length of the array minus 1.  So if there are 5 elements on the layer and you want to change the locked state of the second one from the top (with index 1), you’d do `(5 – 1) – 1 == 3`.
+
+The `dom.setElementVisible()` method has the same bug. 
 
 
 # Undocumented features
