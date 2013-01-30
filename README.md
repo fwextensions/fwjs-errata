@@ -140,7 +140,7 @@ Even more confusing, `dom.pngText.foo` will appear to still be an array immediat
 
 And to make matters worse, each property on `dom.pngText` is limited to 1023 characters.  So if you think you can just stringify some data and store it, think again.  It will get cut off if it's too long.
 
-The [`DomStorage`](http://htmlpreview.github.com/?https://raw.github.com/fwextensions/fwlib/master/docs/a321565296.html) class offers a way to more easily store arbitrary on `dom.pngText` by turning it into JSON and then automatically chunking it up into 1023-character strings.  When the data is restored, the chunks are combined and then evaluated. 
+The [`DomStorage`](http://htmlpreview.github.com/?https://raw.github.com/fwextensions/fwlib/master/docs/a321565296.html) class offers a way to more easily store arbitrary data on `dom.pngText` by turning it into a JSON string and then automatically chunking it up into 1023-character strings.  When the data is restored, the chunks are combined and then evaluated. 
 
 Note that like `customData`, there’s no way to delete a property from `dom.pngText`.  You can only set the property to `null`.
 
@@ -149,7 +149,7 @@ Also note that each page in a Fireworks document has its own independent `pngTex
 
 ## `Files.readLine()` is limited to 2047 characters
 
-`Files.readLine()` will return only the first 2047 characters of a line of text in a file, so if a file has lines longer than that, your JS code will not be able to successfully read all of it.  This may particularly be an issue with JSON files, if you don’t take care to break the lines up.
+`Files.readLine()` will return only the first 2047 characters of a line of text in a file, so if a file has lines longer than that, your JS code will not be able to successfully read all of it.  This may particularly be an issue with JSON files, if you don’t take care to break the lines up when initially saving it.
 
 
 # Bugs
@@ -185,7 +185,7 @@ function foo(
 {
 	// this comment won't appear
 
-if (a) log("a!")
+if (a) log("a!")  // note the lack of braces
 	else 
 	if (b) log("b!")
 }
@@ -232,7 +232,7 @@ function foo() {
 "
 ```
 
-Note that the `"bar baz"` property isn’t quoted in the output, which it should be.
+Note that the `"bar baz"` property isn’t quoted in the output, which it should be, so if you try to `eval()` the output, you’ll get an error.
 
 
 ## Regular expressions
@@ -303,21 +303,41 @@ Checking `System.osName` on Windows 7 returns `"Windows XP"`.
 
 The `elements` array of a layer is indexed from the top-most element in the layer downwards.  When you call `dom.setElementLocked()`, the third parameter is supposed to be the index of the element you want to lock or unlock.  But passing in `0` actually toggles the lock state of the bottom-most element.  
 
-So it seems like `dom.setElementLocked()` indexes the layer's elements in the opposite direction from the `elements` array.  To convert from the `elements` index to the index used by `dom.setElementLocked()`, subtract it from the length of the array minus 1.  So if there are 5 elements on the layer and you want to change the locked state of the second one from the top (with index 1), you’d do `(5 – 1) – 1 == 3`.
+So it seems like `dom.setElementLocked()` indexes the layer's elements in the opposite direction from the `elements` array.  To convert from the `elements` index to the index used by `dom.setElementLocked()`, subtract it from the length of the array minus 1.  For example, if there are 5 elements on the layer and you want to change the locked state of the second one from the top (with index 1), you’d do `(5 – 1) – 1 == 3`.
 
 The `dom.setElementVisible()` method has the same bug. 
 
 
 ## Setting the `locked`, `visible` or `disclosure` property of a sub-layer throws an exception
 
-You can lock or hide a layer by doing something like `dom.layers[1].frames[0].visible = true`.  But if layer 1 is actually a sub-layer, then this code will throw an exception saying *Could not run the script. A parameter was incorrect.*.  The workaround is to use the `dom.setLayerLocked()`, `dom.setLayerVisible()` and `dom.setLayerDisclosure()` methods instead.  
+You can lock or hide a layer by doing something like `dom.layers[1].frames[0].visible = true`.  But if layer 1 is actually a sub-layer, then this code will throw an exception that says *Could not run the script. A parameter was incorrect.*.  The workaround is to use the `dom.setLayerLocked()`, `dom.setLayerVisible()` and `dom.setLayerDisclosure()` methods instead.  
 
 Just accessing the `locked`, `visible` or `disclosure` properties without changing them works fine for sub-layers.  Note that the `disclosure` property is accessed directly on the layer, like `dom.layers[1].disclosure`.
 
 
+## `dom.frames[m].layers[n]` always returns the layer from the current frame
+
+If your document has multiple frames and sub-layers, then the layer named `"Content"`, say, may have a different index on different frames.  This is because sub-layers don’t appear on every frame, yet they’re included in the `layers` array.  
+
+However, if your document has 3 frames and `dom.currentFrameNum` is `0`, then `dom.frames[1].layers[2].name` doesn’t return the name of the third layer in the `layers` array on the second frame.  It actually returns the third layer on the first frame.  No matter which index you use for `dom.frames[]`, the `layers` array for that frame always lists the layers from the current frame.  The only way to work around this is to change `dom.currentFrameNum` to the desired frame before accessing that frame's layers. 
+
+
+## The frame index in all dom methods is ignored
+
+Methods like `dom.setLayerLocked()` have a parameter that is supposed to specify which frame the given layer is on, since layers can have different locked and visible states on different frames.  Unfortunately, the frame parameter seems to be ignored.  If you call `dom.setLayerLocked(1, 2, true, false)` to lock layer 1 on frame 2 while `dom.currentFrameNum` is 0, then layer 1 on frame 0 will get locked instead.  The only work around is to change `dom.currentFrameNum` to the desired frame before calling the method.  
+
+The buggy methods include:
+
+* `dom.setLayerLocked()`
+* `dom.setLayerVisible()`
+* `dom.setElementLocked()`
+* `dom.setElementName()`
+* `dom.setElementVisible()`
+
+
 # Undocumented features
 
-Most of these undocumented features aren’t unique to Fireworks.  They were standard features in version 1.5 of the Mozilla engine, but not necessarily standard across other browsers.  
+Many of these undocumented features aren’t unique to Fireworks.  They were standard features in version 1.5 of the Mozilla JS engine, but not necessarily standard across other browsers.  
 
 
 ## `toSource()`
@@ -417,7 +437,7 @@ o.property = "new"; // prints "sotten!"
 
 Unfortunately, there doesn’t appear to be a way to get access to the getter or setter function via `__lookupGetter__` or `__lookupSetter__` methods that were added in later versions of the Mozilla engine.  There also is no way to control whether the getters/setters are enumerable.  If you use the `__defineGetter__` syntax, the resulting property seems to not be enumerable, whereas if you use the object literal syntax, it is.  
 
-See this [blog post](http://whereswalden.com/2010/04/16/more-spidermonkey-changes-ancient-esoteric-very-rarely-used-syntax-for-creating-getters-and-setters-is-being-removed/) for more information on this old getter/setter syntax.
+See this [blog post](http://whereswalden.com/2010/04/16/more-spidermonkey-changes-ancient-esoteric-very-rarely-used-syntax-for-creating-getters-and-setters-is-being-removed/) for more information on this old getter/setter syntax, which has since been removed from the Mozilla engine.
 
 
 ## `watch()` and `unwatch()`
@@ -455,6 +475,55 @@ The somewhat related `__parent__` property of objects provides access to the sco
 While these properties are fairly arcane, they were crucial for adding the [`trace()`](https://github.com/fwextensions/trace#how-trace-works) method to the Fireworks Console.
 
 
+## `dom.topLayers`
+
+This property is an array of the top-level layers (no sub-layers), which is otherwise a pain to figure out from the `dom.layers` array.  This can also be accessed via a frame object, like `dom.frames[0].topLayers`. 
+
+
+## `fw.takeScreenshot()`
+
+Displays a dialog telling you to switch to the window you want to take a screenshot of.  Once you have, you click the *OK* button to switch to a crosshair mode.  You can then drag out a rectangle over the area you want to capture.  When you release the mouse, that part of the screen is copied to the clipboard as an image.  
+
+
+## `fw.getFWLaunchLanguage()`
+
+Returns a string with the code for the language and locale in which Fireworks is displaying its UI, like `en_US`.
+
+
+## `fw.commonLibraryDir`
+
+Returns the path to the *Common Library* directory, which is *<installDrive>:\Users\<username>\Appdata\Roaming\Adobe\Fireworks CS6\Common Library* on Windows and *<HD>/Library/Users/<username>/Library/Application Support/Adobe/Fireworks CS6/Common Library* on OS X.  This was added in Fireworks CS6.
+
+
+## `fw.reloadPatterns()` and `fw.reloadTextures()`
+
+These methods reload the patterns and textures directories, respectively, so that the drop-downs in the *Properties* panel update to show the currently available files.  This is useful if your extension creates a new pattern or texture and you want it to be immediately available to the user without restarting Fireworks.  This was added in Fireworks CS6.
+
+
+## `fw.browseForFileURL()`
+
+In Fireworks CS6, this method takes a fourth parameter that specifies the root directory for the dialog box that appears.  
+
+
+## `fw.setDocumentImageSize()`
+
+In Fireworks CS6, this method takes a fourth parameter that specifies the interpolation method to use when the document is resized.  The parameter can be a number from 1 to 4, which corresponds to these interpolation methods:
+
+1. Bicubic
+2. Bilinear
+3. Soft
+4. Nearest neighbor 
+
+
+## `Tools`
+
+In Fireworks CS6, the global `Tools` object is a hash that maps a language-independent name for tools, like `"marquee"` or `"paintBucket"`, to the localized string that’s used for the tool in the UI, like `"Marquee"` or `"Paint Bucket"`.  The only reason this is necessary is that the `fw.activeTool` property returns the localized name of the currently selected tool.  So if you want your extension to do something only when `fw.activeTool == "Paint Bucket"`, that check will work in the English version of Fireworks but not the Japanese version.  
+
+To make the extension work with different languages, you’d want to check if `fw.activeTool == Tools.paintBucket`.  It would have probably been more useful to have the hash go the other way, so that you could check if `Tools[fw.activeTool] == "paintBucket"`, but it's easy enough to build your own object with those values.  
+
+Interestingly, `Tools` is an instance of `Object`, rather than `FwDict`.
+
+
 ## `$`
 
 This global object contains a number of Fireworks-specific properties, some of which are useful and some which are not:
@@ -476,3 +545,8 @@ These undocumented methods return the current state of the shift, ctrl/command a
 ## `fw.undo()` and `fw.redo()`
 
 These `undo()` and `redo()` methods seem to behave the same as the equivalent methods on the `dom` object.
+
+
+## `fw.uiOK`
+
+This can be set to `true` or `false`, but it's not clear what effect it has on anything.
