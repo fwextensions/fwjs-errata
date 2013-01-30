@@ -25,6 +25,9 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [System.osName is wrong](#systemosname-is-wrong)
 	- [fw.appName is wrong](#fwappname-is-wrong)
 	- [dom.setElementLocked() and dom.setElementVisible() index elements differently than dom.frames[0].layers[0].elements](#domsetelementlocked-and-domsetelementvisible-index-elements-differently-than-domframes0layers0elements)
+	- [Setting the locked, visible or disclosure property of a sub-layer throws an exception](#setting-the-locked-visible-or-disclosure-property-of-a-sub-layer-throws-an-exception)
+	- [dom.frames[m].layers[n] always returns the layer from the current frame](#domframesmlayersn-always-returns-the-layer-from-the-current-frame)
+	- [The frame index in all dom methods is ignored](#the-frame-index-in-all-dom-methods-is-ignored)
 - [Undocumented features](#undocumented-features)
 	- [toSource()](#tosource)
 	- [File class](#file-class)
@@ -32,9 +35,18 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [Getters and setters](#getters-and-setters)
 	- [watch() and unwatch()](#watch-and-unwatch)
 	- [`__call__` and `__parent__`](#__call__-and-__parent__)
+	- [dom.topLayers](#domtoplayers)
+	- [fw.takeScreenshot()](#fwtakescreenshot)
+	- [fw.getFWLaunchLanguage()](#fwgetfwlaunchlanguage)
+	- [fw.commonLibraryDir](#fwcommonlibrarydir)
+	- [fw.reloadPatterns() and fw.reloadTextures()](#fwreloadpatterns-and-fwreloadtextures)
+	- [fw.browseForFileURL()](#fwbrowseforfileurl)
+	- [fw.setDocumentImageSize()](#fwsetdocumentimagesize)
+	- [Tools](#tools)
 	- [$](#)
 	- [fw.shiftKeyDown(), fw.ctrlCmdKeyDown(), fw.altOptKeyDown()](#fwshiftkeydown-fwctrlcmdkeydown-fwaltoptkeydown)
 	- [fw.undo() and fw.redo()](#fwundo-and-fwredo)
+	- [fw.uiOK](#fwuiok)
 
 
 # Native objects
@@ -550,3 +562,4 @@ These `undo()` and `redo()` methods seem to behave the same as the equivalent me
 ## `fw.uiOK`
 
 This can be set to `true` or `false`, but it's not clear what effect it has on anything.
+
