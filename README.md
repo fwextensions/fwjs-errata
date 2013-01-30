@@ -198,8 +198,7 @@ function foo(
 	// this comment won't appear
 
 if (a) log("a!")  // note the lack of braces
-	else 
-	if (b) log("b!")
+	else if (b) log("b!")
 }
 foo.toString();
 ```
@@ -499,7 +498,7 @@ Displays a dialog telling you to switch to the window you want to take a screens
 
 ## `fw.getFWLaunchLanguage()`
 
-Returns a string with the code for the language and locale in which Fireworks is displaying its UI, like `en_US`.
+Returns a string with the code for the language and locale in which Fireworks is displaying its UI, like `"en_US"`.
 
 
 ## `fw.commonLibraryDir`
@@ -531,7 +530,7 @@ In Fireworks CS6, this method takes a fourth parameter that specifies the interp
 
 In Fireworks CS6, the global `Tools` object is a hash that maps a language-independent name for tools, like `"marquee"` or `"paintBucket"`, to the localized string that’s used for the tool in the UI, like `"Marquee"` or `"Paint Bucket"`.  The only reason this is necessary is that the `fw.activeTool` property returns the localized name of the currently selected tool.  So if you want your extension to do something only when `fw.activeTool == "Paint Bucket"`, that check will work in the English version of Fireworks but not the Japanese version.  
 
-To make the extension work with different languages, you’d want to check if `fw.activeTool == Tools.paintBucket`.  It would have probably been more useful to have the hash go the other way, so that you could check if `Tools[fw.activeTool] == "paintBucket"`, but it's easy enough to build your own object with those values.  
+To make the extension work with different languages, you’d want to check if `fw.activeTool == Tools.paintBucket`.  It would have probably been more useful to have the hash go the other way, so that you could check if `Tools[fw.activeTool] == "paintBucket"`, but it's easy enough to build your own object with those mappings.  
 
 Interestingly, `Tools` is an instance of `Object`, rather than `FwDict`.
 
@@ -562,4 +561,3 @@ These `undo()` and `redo()` methods seem to behave the same as the equivalent me
 ## `fw.uiOK`
 
 This can be set to `true` or `false`, but it's not clear what effect it has on anything.
-
