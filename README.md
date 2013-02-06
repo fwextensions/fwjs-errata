@@ -48,7 +48,7 @@ If you’re a real masochist, you can take a look at the source code for the JavaS
 	- [fw.browseForFileURL()](#fwbrowseforfileurl)
 	- [fw.setDocumentImageSize()](#fwsetdocumentimagesize)
 	- [Tools](#tools)
-	- [$ global object](#global-object)
+	- [$ global object](#-global-object)
 	- [fw.shiftKeyDown(), fw.ctrlCmdKeyDown(), fw.altOptKeyDown()](#fwshiftkeydown-fwctrlcmdkeydown-fwaltoptkeydown)
 	- [onFwWidgetLibraryChange](#onfwwidgetlibrarychange)
 	- [fw.undo() and fw.redo()](#fwundo-and-fwredo)
