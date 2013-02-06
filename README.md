@@ -4,7 +4,7 @@ This document is a compendium of the bugs, hidden features and other weirdnesses
 
 To explore the JS examples here, it's helpful to install the [Fireworks Console](http://johndunning.com/fireworks/about/FWConsole) extension.  You can then enter some JS, evaluate it, and see the output.
 
-If you’re a real masochist, you can take a look at the source code for the JavaScript interpreter, which is installed with the app in *Configuration\Third Party Source Code\JavaScript Interpreter*.  Doing so was how I discovered some of the undocumented features of the JS engine.  It appears to be based on version 1.5 of the Mozilla interpreter.  The version string in the source says `"JavaScript-C 1.5 pre-release 3 2001-03-07"`, so it looks like the code hasn’t been updated since **2001**.
+If you’re a real masochist, you can take a look at the source code for the JavaScript interpreter, which is installed with the app in *Configuration\Third Party Source Code\JavaScript Interpreter*.  Doing so was how I discovered some of the undocumented features of the JS engine, which appears to be based on version 1.5 of the Mozilla interpreter.  The version string in the source says `"JavaScript-C 1.5 pre-release 3 2001-03-07"`, so it looks like the code hasn’t been updated since **2001**.
 
 
 # Contents
@@ -77,7 +77,9 @@ This is why the `fw.selection` object doesn’t have any useful `Array` methods, l
 typeof fw.selection.slice; // "undefined"
 ```
 
-Both classes inherit from `Object` and seem to be roughly interchangeable.  
+One way to work around the lack of standard `Array` methods is to use the `underscore` module in the [`fwlib`](https://github.com/fwextensions/fwlib#fwlibunderscore) library.  After requiring the module via [FWRequireJS](https://github.com/fwextensions/fwrequirejs), you can do things like `_(fw.selection).slice(2)`.
+
+The `FwDict` and `FwArray` classes inherit from `Object` and seem to be roughly interchangeable.  
 
 
 ## `in` and `hasOwnProperty()` with native objects
@@ -166,7 +168,7 @@ Also note that each page in a Fireworks document has its own independent `pngTex
 
 # Bugs
 
-There are some flat-out bugs in the JS engine, most of which can’t really be worked around.
+There are some flat-out bugs in the JS engine, many of which can’t really be worked around.
 
 
 ## Assignment in `if` statements
@@ -346,6 +348,47 @@ The buggy methods include:
 * `dom.setElementVisible()`
 
 
+## Calling `fw.saveDocument()` via `MMExecute()` throws an exception if the file doesn’t already exist
+
+If a Flash panel creates a new document and then calls `fw.saveDocument()` via a call to `MMExecute()`, two *An internal error occurred* alerts are displayed, even though the file is successful saved.  Any code that runs as a result of a JSML panel receiving an event will also trigger the error.  This doesn’t happen if `fw.saveDocument()` is called from a `.jsf` script.  
+
+To work around this, you need to create a throwaway file at the location where you’re saving the document.  Calling `fw.saveDocument()` from `MMExecute()` should then not trigger any error dialogs.   One quick way is to use the `files` module in the [fwlib repo](https://github.com/fwextensions/fwlib) to write out the empty file:
+
+```JavaScript
+fw.createDocument();
+files.write(path, "");
+fw.saveDocument(null, path);
+```
+
+
+## Rich symbol scripts get called multiple times unnecessarily 
+
+Every time you enter and then exit symbol edit mode, every instance of that symbol on every page and state in the document runs its symbol script twice, first with `Widget.opCode == 1`, then with `Widget.opCode == 2`.  The instance that was edited also gets one additional call with `Widget.opCode == 2`.
+
+If you drag a symbol in from the *Document Library* panel, its symbol script code is run *six* times.  The first four calls happen during the drag, with `Widget.opCode` alternating between 1 and 2, then the last two calls occur after the symbol is dropped.  
+
+If you drag a symbol in from the *Common Library* panel, its symbol script code is run just three times, first with `Widget.opCode == 1` and then twice with `Widget.opCode == 2`.  
+
+If you insert a symbol with `dom.insertSymbolAt()`, the script is called only twice.  Copying or pasting a symbol also calls the script twice.  
+
+These unnecessary calls likely add to slowdowns in documents with large numbers of symbol instances.  
+
+
+## `dom.moveSelectionTo()` doesn’t move gradient handles of elements inside groups
+
+Usually you want the handles to move with the shape, so that it maintains its visual appearance.  But for gradients inside groups, `dom.moveSelectionTo()` leaves the handles in their original location, which can cause the gradient to become a flat color.  Elements with gradients that aren’t in a group look okay.
+
+One workaround is to use `dom.moveSelectionBy()`, which move the gradient handles even for elements inside a group.  If you don’t want to calculate the delta needed to move the selection to the desired location, you could also 
+use `dom.setSelectionBounds()` and set the `left` and `top` properties of the first parameter to the desired location, and calculate `right` and `bottom` properties based on that location plus the selection's width and height.  You will also need to pass `"autoTrimImages transformAttributes"` as the second parameter. 
+
+
+## Auto shape icons in the toolbox and Shapes panel get mixed up if auto shapes have the same name
+
+Auto shape icons in the *Configuration/Auto Shapes* folder are GIFs, while those in the *Configuration/Auto Shape Tools* folder are PNGs.  The same `.jsf` file can run in both locations, so you can have a version of the auto shape that’s accessing the *Tools* and one that’s available in the *Auto Shapes* panel.  If those two files have the same name, Fireworks seems to confuse their icons.  You may see the small PNG icon in the *Auto Shapes* panel or the larger GIF icon shrunk down in the *Tools* panel.  
+
+The only workaround is to give the auto shape files different names.  So if your auto shape is called *Placeholder*, you could have a `Placeholder.jsf` file in the *Auto Shapes* folder and a `Placeholder tool.jsf` file in the *Auto Shape Tools* folder, with corresponding icon files.  
+
+
 # Undocumented features
 
 Many of these undocumented features aren’t unique to Fireworks.  They were standard features in version 1.5 of the Mozilla JS engine, but not necessarily standard across other browsers.  
@@ -491,6 +534,13 @@ While these properties are fairly arcane, they were crucial for adding the [`tra
 This property is an array of the top-level layers (no sub-layers), which is otherwise a pain to figure out from the `dom.layers` array.  This can also be accessed via a frame object, like `dom.frames[0].topLayers`. 
 
 
+## `fw.getDocumentDOM()` can access the DOM inside a symbol
+
+The docs claim that the one parameter to `fw.getDocumentDOM()` is there only for compatibility with Dreamweaver.  But you can actually pass in a symbol ID to get a reference to that symbol's DOM, like `var dom = fw.getDocumentDOM(fw.selection[0].symbolID)`.  You can then use that reference to manipulate the elements inside the symbol without having to enter symbol edit mode.  For instance, you could paste an element into the symbol or modify the name of one of the elements inside it.  This is much faster than entering and exiting symbol edit mode, which causes a lot of screen updates.
+
+You can also usually access the symbol DOM from within a rich symbol script.  Assuming the instance is currently selected, `fw.getDocumentDOM(Widget.elem.symbolID)` will return the symbol's DOM.   
+
+
 ## `fw.takeScreenshot()`
 
 Displays a dialog telling you to switch to the window you want to take a screenshot of.  Once you have, you click the *OK* button to switch to a crosshair mode.  You can then drag out a rectangle over the area you want to capture.  When you release the mouse, that part of the screen is copied to the clipboard as an image.  
@@ -551,6 +601,11 @@ This global object contains a number of Fireworks-specific properties, some of w
 ## `fw.shiftKeyDown()`, `fw.ctrlCmdKeyDown()`, `fw.altOptKeyDown()`
 
 These undocumented methods return the current state of the shift, ctrl/command and alt/option keys, respectively.  They could be used to make a command behave differently depending on whether a key was held down while it was selected from the *Commands* menu.  But you wouldn’t be able to tell whether the command was run from the menu or via a keyboard shortcut that included the given key.
+
+
+## `onFwWidgetLibraryChange`
+
+An event that Fireworks dispatches to SWF panels, possibly when the Common Library is refreshed.
 
 
 ## `fw.undo()` and `fw.redo()`
